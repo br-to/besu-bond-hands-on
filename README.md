@@ -181,9 +181,11 @@ Chainlens の `:8081/dashboard` と Grafana の `:3000/login` は HTTP 200、Pro
 
 ## トラブルシューティング
 
-記事の実行環境と 2026-11-01 の通し実行で実際に起きた点です。Docker Desktop などで再現するかは未確認のものもあります。
+記事の Linux 環境と 2026-11-01 の通し実行でつまずいた点と、同じ日に macOS 上で確認した内容です。macOS + Rancher Desktop（Container Engine は dockerd (moby)）では、タグ v1.1.0 のリポジトリ直下から手順 1〜7 を通しました。デプロイ先は `0x42699A7612A82f1d9C36148af9C77354759b210b` です。許可前の移転は `NotAllowed(0xf17f...)` で失敗し、許可後は成功しています。この環境では iptables の対処は不要でした。Rancher Desktop を使う場合は、Container Engine を dockerd (moby) にしてください。
 
-ホストに古い `iptables-legacy` のテーブルがあり、`FORWARD` のポリシーが `DROP` だと、起動直後の peer 数が 0 のままブロック 0 から進みません。2026-11-01 の再実行でも `net_peerCount=0x0` / `eth_blockNumber=0x0` で同じ状態になりました。次の 1 行でクイックスタートの Docker ネットワーク（`172.16.239.0/24`）内通信を許可すると、`peers=0x4` になりブロック生成が始まります。修正前の validator ログには `Moved to round 2 which will expire in 40 seconds` も出ていました。
+`.env` の作成と `forge` / `cast` の実行はリポジトリ直下で行ってください。手順 1 のあとカレントディレクトリが `besu-test-network` のままだと `$RPC_URL` が空になり、`Socket operation on non-socket` というエラーになります。
+
+ホストに古い `iptables-legacy` のテーブルがあり、`FORWARD` のポリシーが `DROP` だと、起動直後の peer 数が 0 のままブロック 0 から進みません。Linux での 2026-11-01 の再実行でも `net_peerCount=0x0` / `eth_blockNumber=0x0` で同じ状態になりました。次の 1 行でクイックスタートの Docker ネットワーク（`172.16.239.0/24`）内通信を許可すると、`peers=0x4` になりブロック生成が始まります。修正前の validator ログには `Moved to round 2 which will expire in 40 seconds` も出ていました。この iptables の事象が Docker Desktop でも起きるかは未確認です。
 
 ```bash
 sudo iptables-legacy -I DOCKER-USER -s 172.16.239.0/24 -d 172.16.239.0/24 -j ACCEPT
